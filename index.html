@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 제안서 생성기</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>AI 제안서 생성기</h1>
+    <p class="subtitle">기존 제안서 양식을 참고하여 새로운 제안서를 자동으로 작성합니다. (Gemini 3 Flash Preview)</p>
+
+    <div class="card">
+      <label for="apiKey">Gemini API Key</label>
+      <input type="password" id="apiKey" placeholder="API Key를 입력하세요">
+      <p class="hint">
+        API Key는 브라우저에만 저장되며 서버로 전송되지 않습니다.
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">API Key 발급받기</a>
+      </p>
+    </div>
+
+    <div class="card">
+      <label for="templateFile">참고할 제안서 양식 파일 (.txt, .md)</label>
+      <input type="file" id="templateFile" accept=".txt,.md,text/plain,text/markdown">
+      <p class="hint">또는 아래에 양식 내용을 직접 붙여넣으세요.</p>
+      <textarea id="templateText" rows="10" placeholder="여기에 참고할 제안서 양식 내용을 붙여넣으세요..."></textarea>
+    </div>
+
+    <div class="card">
+      <label for="newInfo">새 제안서에 들어갈 정보</label>
+      <textarea id="newInfo" rows="8" placeholder="새로운 제안서의 주제, 클라이언트 정보, 목표, 예산, 일정 등 핵심 내용을 입력하세요..."></textarea>
+    </div>
+
+    <button id="generateBtn">제안서 생성하기</button>
+
+    <div class="card" id="resultCard" hidden>
+      <div class="result-header">
+        <label>생성된 제안서</label>
+        <button id="copyBtn" type="button">복사</button>
+      </div>
+      <textarea id="result" rows="20" readonly></textarea>
+    </div>
+
+    <p id="status" class="status"></p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
