@@ -3,48 +3,113 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 제안서 생성기</title>
-<link rel="stylesheet" href="style.css">
+<title>제안서 생성기</title>
+<style>
+  body { font-family: -apple-system, "Malgun Gothic", sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background:#f7f7fa; color:#222; }
+  h1 { font-size: 24px; }
+  .card { background:#fff; border-radius:12px; padding:20px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  textarea, input { width:100%; box-sizing:border-box; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; }
+  textarea { min-height:160px; resize:vertical; }
+  button { background:#4f46e5; color:#fff; border:none; padding:12px 24px; border-radius:8px; font-size:15px; cursor:pointer; }
+  button:disabled { background:#aaa; cursor:not-allowed; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  #output { white-space: pre-wrap; line-height:1.6; }
+  .small { font-size:12px; color:#666; }
+  .err { color:#c00; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>AI 제안서 생성기</h1>
-    <p class="subtitle">기존 제안서 양식을 참고하여 새로운 제안서를 자동으로 작성합니다. (Gemini 3 Flash Preview)</p>
+  <h1>📄 제안서 생성기 (Gemini 3 Flash)</h1>
 
-    <div class="card">
-      <label for="apiKey">Gemini API Key</label>
-      <input type="password" id="apiKey" placeholder="API Key를 입력하세요">
-      <p class="hint">
-        API Key는 브라우저에만 저장되며 서버로 전송되지 않습니다.
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">API Key 발급받기</a>
-      </p>
-    </div>
-
-    <div class="card">
-      <label for="templateFile">참고할 제안서 양식 파일 (.txt, .md)</label>
-      <input type="file" id="templateFile" accept=".txt,.md,text/plain,text/markdown">
-      <p class="hint">또는 아래에 양식 내용을 직접 붙여넣으세요.</p>
-      <textarea id="templateText" rows="10" placeholder="여기에 참고할 제안서 양식 내용을 붙여넣으세요..."></textarea>
-    </div>
-
-    <div class="card">
-      <label for="newInfo">새 제안서에 들어갈 정보</label>
-      <textarea id="newInfo" rows="8" placeholder="새로운 제안서의 주제, 클라이언트 정보, 목표, 예산, 일정 등 핵심 내용을 입력하세요..."></textarea>
-    </div>
-
-    <button id="generateBtn">제안서 생성하기</button>
-
-    <div class="card" id="resultCard" hidden>
-      <div class="result-header">
-        <label>생성된 제안서</label>
-        <button id="copyBtn" type="button">복사</button>
-      </div>
-      <textarea id="result" rows="20" readonly></textarea>
-    </div>
-
-    <p id="status" class="status"></p>
+  <div class="card">
+    <label>Gemini API Key</label>
+    <input type="password" id="apiKey" placeholder="AIza... (브라우저에만 저장됩니다)">
+    <p class="small">키는 서버로 전송되지 않고, 브라우저(localStorage)에만 저장되며 Google API로 직접 요청됩니다.</p>
   </div>
 
-  <script src="app.js"></script>
+  <div class="card">
+    <label>참고할 제안서 양식 (기존 제안서 전체 텍스트)</label>
+    <textarea id="template" placeholder="기존 제안서 내용을 그대로 붙여넣어 주세요."></textarea>
+  </div>
+
+  <div class="card">
+    <label>새 제안서 요청 내용 (대상, 주제, 목적, 조건 등)</label>
+    <textarea id="request" placeholder="예) 동일한 형식으로, OO기관 대상 'AI 교육 프로그램' 제안서를 작성해줘. 예산은 500만원, 기간은 2주."></textarea>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="genBtn" onclick="generate()">제안서 생성</button>
+      <span id="status" class="small"></span>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <div class="row" style="justify-content:space-between;">
+      <label style="margin:0;">생성된 제안서</label>
+      <button onclick="copyOutput()">복사</button>
+    </div>
+    <div id="output"></div>
+  </div>
+
+<script>
+const apiKeyEl = document.getElementById('apiKey');
+apiKeyEl.value = localStorage.getItem('geminiApiKey') || '';
+apiKeyEl.addEventListener('input', () => localStorage.setItem('geminiApiKey', apiKeyEl.value));
+
+async function generate() {
+  const apiKey = apiKeyEl.value.trim();
+  const template = document.getElementById('template').value.trim();
+  const request = document.getElementById('request').value.trim();
+  const statusEl = document.getElementById('status');
+  const btn = document.getElementById('genBtn');
+  const resultCard = document.getElementById('resultCard');
+  const output = document.getElementById('output');
+
+  if (!apiKey) { alert('Gemini API Key를 입력해주세요.'); return; }
+  if (!template) { alert('참고할 제안서 양식을 입력해주세요.'); return; }
+  if (!request) { alert('새 제안서 요청 내용을 입력해주세요.'); return; }
+
+  btn.disabled = true;
+  statusEl.textContent = '생성 중입니다...';
+  statusEl.className = 'small';
+  resultCard.style.display = 'none';
+
+  const prompt = `다음은 참고용 제안서 양식(형식, 구조, 어조)입니다:\n\n---\n${template}\n---\n\n위 양식의 구조와 형식, 어조를 그대로 참고하여, 아래 요청에 맞는 새로운 제안서를 작성해주세요. 양식의 항목 구성과 문체를 최대한 유지하되, 내용은 새 요청에 맞게 새로 작성하세요.\n\n새 제안서 요청:\n${request}`;
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error?.message || `요청 실패 (${res.status})`);
+    }
+
+    const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+    if (!text) throw new Error('응답에서 텍스트를 찾을 수 없습니다.');
+
+    output.textContent = text;
+    resultCard.style.display = 'block';
+    statusEl.textContent = '완료되었습니다.';
+  } catch (e) {
+    statusEl.textContent = '오류: ' + e.message;
+    statusEl.className = 'small err';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function copyOutput() {
+  const text = document.getElementById('output').textContent;
+  navigator.clipboard.writeText(text);
+}
+</script>
 </body>
 </html>
