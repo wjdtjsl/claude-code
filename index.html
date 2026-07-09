@@ -3,113 +3,105 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>제안서 생성기</title>
-<style>
-  body { font-family: -apple-system, "Malgun Gothic", sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background:#f7f7fa; color:#222; }
-  h1 { font-size: 24px; }
-  .card { background:#fff; border-radius:12px; padding:20px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
-  label { display:block; font-weight:600; margin-bottom:6px; }
-  textarea, input { width:100%; box-sizing:border-box; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; }
-  textarea { min-height:160px; resize:vertical; }
-  button { background:#4f46e5; color:#fff; border:none; padding:12px 24px; border-radius:8px; font-size:15px; cursor:pointer; }
-  button:disabled { background:#aaa; cursor:not-allowed; }
-  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  #output { white-space: pre-wrap; line-height:1.6; }
-  .small { font-size:12px; color:#666; }
-  .err { color:#c00; }
-</style>
+<title>다중지능 검사 | 나의 강점 지능 찾기</title>
+<meta name="description" content="가드너의 다중지능 이론(8가지 지능)을 기반으로 나의 강점 지능 3가지와 약점 지능 3가지를 진단하고, 강점 지능의 조합이 만드는 특징까지 알아보는 검사입니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>📄 제안서 생성기 (Gemini 3 Flash)</h1>
 
-  <div class="card">
-    <label>Gemini API Key</label>
-    <input type="password" id="apiKey" placeholder="AIza... (브라우저에만 저장됩니다)">
-    <p class="small">키는 서버로 전송되지 않고, 브라우저(localStorage)에만 저장되며 Google API로 직접 요청됩니다.</p>
-  </div>
+<div class="app" id="app">
 
-  <div class="card">
-    <label>참고할 제안서 양식 (기존 제안서 전체 텍스트)</label>
-    <textarea id="template" placeholder="기존 제안서 내용을 그대로 붙여넣어 주세요."></textarea>
-  </div>
+  <!-- 인트로 화면 -->
+  <section class="screen intro" id="screen-intro">
+    <div class="intro-card">
+      <div class="intro-badge">🧠 다중지능 이론 기반 자가진단</div>
+      <h1>나의 다중지능 검사</h1>
+      <p class="intro-desc">
+        하워드 가드너(Howard Gardner)의 다중지능 이론(Theory of Multiple Intelligences)을 바탕으로<br class="br-desktop">
+        8가지 지능 영역에 대한 나의 강점과 약점을 알아보세요.
+      </p>
 
-  <div class="card">
-    <label>새 제안서 요청 내용 (대상, 주제, 목적, 조건 등)</label>
-    <textarea id="request" placeholder="예) 동일한 형식으로, OO기관 대상 'AI 교육 프로그램' 제안서를 작성해줘. 예산은 500만원, 기간은 2주."></textarea>
-  </div>
+      <div class="intro-meta">
+        <div class="meta-item"><span class="meta-num">48</span><span class="meta-label">문항</span></div>
+        <div class="meta-item"><span class="meta-num">8</span><span class="meta-label">지능 영역</span></div>
+        <div class="meta-item"><span class="meta-num">5~7</span><span class="meta-label">분 소요</span></div>
+      </div>
 
-  <div class="card">
-    <div class="row">
-      <button id="genBtn" onclick="generate()">제안서 생성</button>
-      <span id="status" class="small"></span>
+      <div class="intro-list">
+        <div class="intro-list-item">✔️ 강점 지능 TOP 3 &amp; 약점 지능 3가지 제공</div>
+        <div class="intro-list-item">✔️ 강점 지능을 조합했을 때의 시너지 해설 제공</div>
+        <div class="intro-list-item">✔️ 지능별 추천 활동 &amp; 진로 힌트 제공</div>
+      </div>
+
+      <button class="btn-primary btn-start" id="btnStart">검사 시작하기</button>
+      <p class="intro-note">각 문항에 얼마나 해당하는지 1점(전혀 아니다) ~ 5점(매우 그렇다)으로 응답해주세요.</p>
     </div>
-  </div>
+  </section>
 
-  <div class="card" id="resultCard" style="display:none;">
-    <div class="row" style="justify-content:space-between;">
-      <label style="margin:0;">생성된 제안서</label>
-      <button onclick="copyOutput()">복사</button>
+  <!-- 검사 화면 -->
+  <section class="screen quiz" id="screen-quiz" hidden>
+    <header class="quiz-header">
+      <div class="quiz-header-top">
+        <span class="quiz-step-label" id="quizStepLabel">1 / 8</span>
+        <span class="quiz-cat-label" id="quizCatLabel"></span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </header>
+
+    <div class="quiz-body">
+      <div class="quiz-cat-intro" id="quizCatIntro"></div>
+      <div class="question-list" id="questionList"></div>
     </div>
-    <div id="output"></div>
-  </div>
 
-<script>
-const apiKeyEl = document.getElementById('apiKey');
-apiKeyEl.value = localStorage.getItem('geminiApiKey') || '';
-apiKeyEl.addEventListener('input', () => localStorage.setItem('geminiApiKey', apiKeyEl.value));
+    <footer class="quiz-footer">
+      <p class="quiz-hint" id="quizHint"></p>
+      <div class="quiz-nav">
+        <button class="btn-ghost" id="btnPrev">이전</button>
+        <button class="btn-primary" id="btnNext">다음</button>
+      </div>
+    </footer>
+  </section>
 
-async function generate() {
-  const apiKey = apiKeyEl.value.trim();
-  const template = document.getElementById('template').value.trim();
-  const request = document.getElementById('request').value.trim();
-  const statusEl = document.getElementById('status');
-  const btn = document.getElementById('genBtn');
-  const resultCard = document.getElementById('resultCard');
-  const output = document.getElementById('output');
+  <!-- 결과 화면 -->
+  <section class="screen results" id="screen-results" hidden>
+    <header class="results-header">
+      <div class="results-badge">검사 결과</div>
+      <h1>나의 다중지능 프로필</h1>
+      <p class="results-sub">8가지 지능 영역의 점수를 바탕으로 강점과 약점을 분석했어요.</p>
+    </header>
 
-  if (!apiKey) { alert('Gemini API Key를 입력해주세요.'); return; }
-  if (!template) { alert('참고할 제안서 양식을 입력해주세요.'); return; }
-  if (!request) { alert('새 제안서 요청 내용을 입력해주세요.'); return; }
+    <div class="card chart-card">
+      <h2 class="card-title">지능별 점수 (5점 만점)</h2>
+      <div id="chart" class="chart" role="img" aria-label="지능별 평균 점수 막대 그래프"></div>
+    </div>
 
-  btn.disabled = true;
-  statusEl.textContent = '생성 중입니다...';
-  statusEl.className = 'small';
-  resultCard.style.display = 'none';
+    <div class="card">
+      <h2 class="card-title">💪 강점 지능 TOP 3</h2>
+      <p class="card-desc">가장 두드러지는 상위 3개 지능이에요. 이 영역의 활동을 늘리면 성취감과 몰입을 더 크게 느낄 수 있어요.</p>
+      <div class="profile-grid" id="strengthGrid"></div>
+    </div>
 
-  const prompt = `다음은 참고용 제안서 양식(형식, 구조, 어조)입니다:\n\n---\n${template}\n---\n\n위 양식의 구조와 형식, 어조를 그대로 참고하여, 아래 요청에 맞는 새로운 제안서를 작성해주세요. 양식의 항목 구성과 문체를 최대한 유지하되, 내용은 새 요청에 맞게 새로 작성하세요.\n\n새 제안서 요청:\n${request}`;
+    <div class="card">
+      <h2 class="card-title">🌱 성장이 필요한 지능 3가지</h2>
+      <p class="card-desc">상대적으로 낮게 나타난 지능이에요. 약점이라기보다 아직 자극받을 기회가 적었던 영역일 수 있어요.</p>
+      <div class="profile-grid weak" id="weaknessGrid"></div>
+    </div>
 
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${encodeURIComponent(apiKey)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-      })
-    });
+    <div class="card combo-card">
+      <h2 class="card-title">✨ 강점 지능 조합의 특징</h2>
+      <div id="comboExplain"></div>
+    </div>
 
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error?.message || `요청 실패 (${res.status})`);
-    }
+    <div class="results-footer">
+      <button class="btn-ghost" id="btnRestart">다시 검사하기</button>
+    </div>
+  </section>
 
-    const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
-    if (!text) throw new Error('응답에서 텍스트를 찾을 수 없습니다.');
+</div>
 
-    output.textContent = text;
-    resultCard.style.display = 'block';
-    statusEl.textContent = '완료되었습니다.';
-  } catch (e) {
-    statusEl.textContent = '오류: ' + e.message;
-    statusEl.className = 'small err';
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-function copyOutput() {
-  const text = document.getElementById('output').textContent;
-  navigator.clipboard.writeText(text);
-}
-</script>
+<script src="app.js"></script>
 </body>
 </html>
