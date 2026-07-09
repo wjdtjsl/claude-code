@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>모둠 편성기</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card-bg: #ffffff;
+    --text: #1f2333;
+    --muted: #6b7280;
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --border: #e5e7eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14151f;
+      --card-bg: #1e2030;
+      --text: #f0f1f7;
+      --muted: #9ca3af;
+      --primary: #818cf8;
+      --primary-dark: #6366f1;
+      --border: #2f3145;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px 64px;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 640px;
+  }
+  h1 {
+    font-size: 24px;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .subtitle {
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 28px;
+    font-size: 14px;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .field {
+    margin-bottom: 18px;
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  input[type="number"], input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+  }
+  input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .mode-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .mode-toggle button {
+    flex: 1;
+    padding: 10px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .mode-toggle button.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    font-weight: 600;
+  }
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+  button.primary {
+    flex: 1;
+    padding: 13px;
+    border-radius: 10px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.primary:hover { background: var(--primary-dark); }
+  button.secondary {
+    padding: 13px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 15px;
+    cursor: pointer;
+  }
+  #error {
+    color: #ef4444;
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+  #results { display: none; }
+  .group {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+  .group h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: var(--primary);
+  }
+  .members {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .member {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 13px;
+  }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 24px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎲 모둠 편성기</h1>
+  <p class="subtitle">학생 번호를 입력하면 무작위로 모둠을 나눠드려요.</p>
+
+  <div class="card">
+    <div class="field">
+      <label for="studentCount">학생 인원수</label>
+      <input type="number" id="studentCount" min="2" max="200" placeholder="예: 24" />
+      <p class="hint">1번부터 입력한 인원수까지 번호를 자동 생성합니다.</p>
+    </div>
+
+    <div class="field">
+      <label for="customNumbers">학생 번호 직접 입력 (선택)</label>
+      <input type="text" id="customNumbers" placeholder="예: 1,2,3,5,7,9,10" />
+      <p class="hint">비워두면 위 인원수를 기준으로 자동 생성됩니다. 결석생 제외 시 사용하세요.</p>
+    </div>
+
+    <div class="mode-toggle">
+      <button type="button" id="modeGroupCount" class="active">모둠 개수로 나누기</button>
+      <button type="button" id="modeGroupSize">모둠 인원수로 나누기</button>
+    </div>
+
+    <div class="field">
+      <label for="modeValue" id="modeValueLabel">모둠 개수</label>
+      <input type="number" id="modeValue" min="1" max="100" placeholder="예: 4" />
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="generateBtn">모둠 편성하기</button>
+      <button class="secondary" id="shuffleBtn" style="display:none;">다시 섞기</button>
+    </div>
+    <p id="error"></p>
+  </div>
+
+  <div id="results"></div>
+
+  <footer>학생 번호는 무작위로 섞여 모둠에 배정됩니다.</footer>
+</div>
+
+<script>
+  const studentCountEl = document.getElementById('studentCount');
+  const customNumbersEl = document.getElementById('customNumbers');
+  const modeGroupCountBtn = document.getElementById('modeGroupCount');
+  const modeGroupSizeBtn = document.getElementById('modeGroupSize');
+  const modeValueEl = document.getElementById('modeValue');
+  const modeValueLabel = document.getElementById('modeValueLabel');
+  const generateBtn = document.getElementById('generateBtn');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const errorEl = document.getElementById('error');
+  const resultsEl = document.getElementById('results');
+
+  let mode = 'groupCount'; // or 'groupSize'
+  let lastNumbers = [];
+
+  modeGroupCountBtn.addEventListener('click', () => {
+    mode = 'groupCount';
+    modeGroupCountBtn.classList.add('active');
+    modeGroupSizeBtn.classList.remove('active');
+    modeValueLabel.textContent = '모둠 개수';
+    modeValueEl.placeholder = '예: 4';
+  });
+
+  modeGroupSizeBtn.addEventListener('click', () => {
+    mode = 'groupSize';
+    modeGroupSizeBtn.classList.add('active');
+    modeGroupCountBtn.classList.remove('active');
+    modeValueLabel.textContent = '모둠당 인원수';
+    modeValueEl.placeholder = '예: 5';
+  });
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
+    resultsEl.style.display = 'none';
+    shuffleBtn.style.display = 'none';
+  }
+
+  function clearError() {
+    errorEl.style.display = 'none';
+  }
+
+  function parseCustomNumbers(raw) {
+    return raw
+      .split(/[,\s]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .map(s => Number(s));
+  }
+
+  function getStudentNumbers() {
+    const custom = customNumbersEl.value.trim();
+    if (custom) {
+      const nums = parseCustomNumbers(custom);
+      if (nums.some(n => Number.isNaN(n) || !Number.isFinite(n))) {
+        throw new Error('학생 번호는 숫자만 콤마(,) 또는 공백으로 구분해 입력해주세요.');
+      }
+      const unique = [...new Set(nums)];
+      if (unique.length < 2) {
+        throw new Error('학생 번호를 2개 이상 입력해주세요.');
+      }
+      return unique;
+    }
+    const count = Number(studentCountEl.value);
+    if (!Number.isInteger(count) || count < 2) {
+      throw new Error('학생 인원수를 2 이상의 숫자로 입력해주세요.');
+    }
+    if (count > 200) {
+      throw new Error('학생 인원수는 200명 이하로 입력해주세요.');
+    }
+    return Array.from({ length: count }, (_, i) => i + 1);
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function splitIntoGroups(numbers, mode, value) {
+    const shuffled = shuffle(numbers);
+    let groupCount;
+    if (mode === 'groupCount') {
+      groupCount = value;
+    } else {
+      groupCount = Math.ceil(numbers.length / value);
+    }
+    if (!Number.isInteger(groupCount) || groupCount < 1) {
+      throw new Error('모둠 값이 올바르지 않습니다.');
+    }
+    if (groupCount > numbers.length) {
+      throw new Error('모둠 수가 학생 수보다 많을 수 없습니다.');
+    }
+    const groups = Array.from({ length: groupCount }, () => []);
+    shuffled.forEach((num, idx) => {
+      groups[idx % groupCount].push(num);
+    });
+    return groups;
+  }
+
+  function renderGroups(groups) {
+    resultsEl.innerHTML = '';
+    groups.forEach((g, idx) => {
+      const div = document.createElement('div');
+      div.className = 'group';
+      const sorted = g.slice().sort((a, b) => a - b);
+      div.innerHTML = `
+        <h3>모둠 ${idx + 1} (${g.length}명)</h3>
+        <div class="members">
+          ${sorted.map(n => `<span class="member">${n}번</span>`).join('')}
+        </div>
+      `;
+      resultsEl.appendChild(div);
+    });
+    resultsEl.style.display = 'block';
+    shuffleBtn.style.display = 'inline-block';
+  }
+
+  function generate() {
+    clearError();
+    try {
+      const numbers = getStudentNumbers();
+      const value = Number(modeValueEl.value);
+      if (!Number.isInteger(value) || value < 1) {
+        throw new Error(mode === 'groupCount' ? '모둠 개수를 1 이상의 숫자로 입력해주세요.' : '모둠당 인원수를 1 이상의 숫자로 입력해주세요.');
+      }
+      lastNumbers = numbers;
+      const groups = splitIntoGroups(numbers, mode, value);
+      renderGroups(groups);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  function reshuffle() {
+    if (!lastNumbers.length) return;
+    try {
+      const value = Number(modeValueEl.value);
+      const groups = splitIntoGroups(lastNumbers, mode, value);
+      renderGroups(groups);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  generateBtn.addEventListener('click', generate);
+  shuffleBtn.addEventListener('click', reshuffle);
+</script>
+</body>
+</html>
