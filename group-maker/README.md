@@ -12,3 +12,5 @@
 ## 배포
 
 순수 HTML/CSS/JS로 작성된 정적 웹앱이라 별도 빌드 과정 없이 Vercel 등에 바로 배포됩니다.
+
+GitHub Pages: https://wjdtjsl.github.io/claude-code/
